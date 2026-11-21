@@ -167,3 +167,72 @@ def main():
 
 if __name__ == "__main__":
     main()
+# Training went smoothly for both models: the training loss decreased steadily from about
+# 0.20 (logistic) and 0.12 (probit) after epoch 1 to about 0.054 and 0.047 after epoch 100,
+# with no nan or inf. The loss was still slowly decreasing at epoch 100, so neither model had
+# fully converged.
+#
+# (a) Logistic regression vs. the baseline
+# ----------------------------------------
+# On the training set the two are almost identical (98.90% vs. 98.68%, a difference of one
+# sample out of 455). On the test set the baseline gets 2 more samples right (111 vs. 109).
+#
+# This gap is small compared with the noise in the test accuracy. With only 114 test samples
+# and accuracy around 96%, the standard error is about sqrt(0.96 * 0.04 / 114) = 0.018, i.e.
+# roughly 2 samples. The observed difference (1.76%) is about one standard error, so a
+# different random split could easily shrink or reverse it. I would not conclude that the
+# baseline is genuinely better.
+#
+# There are also two systematic differences between the two fits that could explain a small
+# gap in favor of the baseline:
+#   * sklearn's LogisticRegression adds L2 regularization by default (C = 1.0), so it
+#     minimizes cross-entropy plus a penalty on large weights. Our model minimizes the
+#     cross-entropy alone. This dataset is close to linearly separable, and without a penalty
+#     the training loss can keep decreasing by making w larger (our loss was still going down
+#     at epoch 100). Larger weights give more extreme, overconfident probabilities, which can
+#     generalize slightly worse.
+#   * sklearn solves its problem to convergence with a second-order method (lbfgs), while we
+#     ran 100 epochs of mini-batch SGD with a fixed step size, so our solution is an
+#     approximation of the minimizer.
+#
+# (b) Probit regression vs. the baseline and vs. logistic regression
+# -----------------------------------------------------------------
+# Probit gets 110 of 114 test samples right, one fewer than the baseline and one more than our
+# logistic model. All three are within about one standard error of each other, so their test
+# performance is essentially the same.
+#
+# This is what we should expect. Both models predict class 1 exactly when
+# sigma(z) >= 0.5 or Phi(z) >= 0.5, and since sigma(0) = Phi(0) = 0.5, both rules are the same:
+# predict 1 when z = w^T x + b >= 0. So both are linear classifiers with decision boundary
+# w^T x + b = 0, and they differ only in where that boundary ends up. The two fitted boundaries
+# are almost the same: the models agree on 113 of the 114 test samples, and that single
+# disagreement is exactly the one-sample difference in their test accuracy.
+#
+# Where the two link functions differ is in the tails. The normal distribution has much thinner
+# tails than the logistic distribution, so Phi(z) approaches 0 and 1 much faster than sigma(z)
+# (e.g. 1 - sigma(4) = 0.018 but 1 - Phi(4) = 0.00003). Two consequences show up in the output:
+#   * Clipping matters much more for probit. In float32, Phi(z) is rounded to exactly 0 or 1
+#     once |z| is above roughly 5.4, compared with roughly 16.6 for sigma. Accordingly, 41.98%
+#     of probit's training predictions hit the clipping bounds, vs. 8.13% for logistic. Without
+#     clipping, log(0) would turn the loss into inf and the gradients into nan. Since training
+#     accuracy is 98.7%, most clipped predictions are confident and correct, so the zero
+#     gradient that clipping produces for them costs little here.
+#   * The weights are on a different scale. Because sigma is flatter than Phi, logistic
+#     regression needs a larger z to reach the same probability. The approximation
+#     sigma(z) ~ Phi(z / 1.7) suggests logistic weights about 1.6-1.8 times the probit weights.
+#     We got 1.319, which is in the right direction but smaller. A likely reason is that the
+#     approximation compares the two models at their optima, while here neither model has
+#     converged: without regularization on nearly separable data the weights keep growing, so
+#     the ratio depends on how long we train. The large share of clipped (zero-gradient) probit
+#     predictions also changes how its weights grow. Rescaling w and b by a positive constant
+#     does not move the boundary w^T x + b = 0, which is why the different scales do not affect
+#     the classifications.
+#
+# Conclusion
+# ----------
+# Implementing logistic regression ourselves with automatic differentiation and SGD gives test
+# accuracy close to sklearn's baseline (109 vs. 111 of 114), and the gap is within the noise of
+# a 114-sample test set; the baseline's L2 regularization is a plausible reason for its slight
+# edge. Switching the link from sigmoid to the normal CDF (probit) changes almost nothing for
+# classification, since both give a linear decision boundary, but it makes numerical stability
+# a bigger concern because Phi saturates much sooner.

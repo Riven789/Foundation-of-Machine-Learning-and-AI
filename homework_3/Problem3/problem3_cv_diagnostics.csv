@@ -1,0 +1,11 @@
+dataset,model,cv_accuracy
+dset0,logistic regression (linear),0.646
+dset0,RBF-SVM (C=10),0.8280000000000001
+dset0,random forest (500 trees),0.8320000000000001
+dset0,"GB, 100 trees",0.8220000000000001
+dset0,majority class,0.5740000000000001
+dset1,logistic regression (linear),0.8300000000000001
+dset1,RBF-SVM (C=10),0.7899999999999999
+dset1,random forest (500 trees),0.8299999999999998
+dset1,"GB, 100 trees",0.808
+dset1,majority class,0.546

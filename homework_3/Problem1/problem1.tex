@@ -1,0 +1,151 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\title{Data 37711 Homework 3 --- Problem 1\\
+\large Poisson boosting with regression trees}
+\author{Yiwen Chen}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent\textbf{Setup.} We observe $(x_i,y_i)_{i=1}^n$ with $y_i\in\N=\{0,1,2,\dots\}$. The model is
+\[
+Y\mid X=x\;\sim\;\mathrm{Poi}\bigl(\mu(x)\bigr),\qquad \mu(x)=\exp\bigl(f(x)\bigr),\qquad
+f(x)=\sum_{j}\lambda_j h_j(x),
+\]
+where each $h_j:\mathcal X\to\R$ is a regression tree and $\lambda_j\in\R$ is a step size.
+
+%==========================================================================
+\section*{(a) Modelling choices}
+
+\paragraph{(i) Why Poisson is reasonable.}
+\begin{itemize}
+\item \textbf{The support matches the data.} $Y$ is a non-negative integer, i.e.\ a count. The
+Poisson distribution is supported exactly on $\N$, so every value the model can produce is a value
+$Y$ can take. A Gaussian (squared-error) model would allow negative and non-integer outcomes.
+\item \textbf{It is the standard model for counts.} If $Y$ counts many independent rare events
+(e.g.\ $\mathrm{Bin}(N,p)$ with $N$ large and $Np$ moderate), then $Y$ is approximately Poisson.
+\item \textbf{It is the simplest such model.} The Poisson distribution has one parameter, its mean
+$\mu=\E[Y\mid X]$. So we only have to learn the conditional mean, which is a single real-valued
+function that boosting can fit. It also builds in a sensible mean--variance relation,
+$\operatorname{Var}(Y\mid X)=\E[Y\mid X]$: larger counts are noisier. Squared loss instead assumes
+constant variance.
+\item \textbf{It is an exponential family.} With the log link (below), the negative log-likelihood
+is a smooth convex function of $f$, which is what gradient boosting needs.
+\end{itemize}
+(If the counts turned out to be strongly over-dispersed, i.e.\ $\operatorname{Var}\gg\E$, a
+negative-binomial likelihood would be the natural next step. The boosting machinery below would stay
+the same.)
+
+\paragraph{(ii) Why the link is $\exp(\cdot)$.}
+\begin{itemize}
+\item \textbf{Positivity without constraints.} The Poisson rate must satisfy $\mu>0$. But
+$f=\sum_j\lambda_jh_j$ is a sum of real-valued trees with real weights, so it can take any value
+in $\R$. The map $\exp:\R\to(0,\infty)$ turns \emph{every} $f$ into a valid rate. Boosting can
+then search over $f$ freely, with no constraints and no clipping.
+\item \textbf{It is the canonical link.} The Poisson log-likelihood is
+$y\log\mu-\mu-\log y!$, so the natural parameter is $\theta=\log\mu$. Setting $f=\theta$ makes
+the loss $e^{f}-yf$, which is convex in $f$ ($\partial^2L/\partial f^2=e^f>0$). The gradient is
+the simple residual $\mu-y$ (parts (b) and (c)), and line searches have unique solutions.
+\item \textbf{Effects are multiplicative.} $\mu(x)=\prod_j\exp\bigl(\lambda_jh_j(x)\bigr)$, so each
+tree rescales the expected count by a factor. This is usually the right scale for counts:
+``this region has twice as many events'' is a more natural statement than ``three more events''.
+\end{itemize}
+
+%==========================================================================
+\section*{(b) Loss function}
+
+We learn by maximum likelihood, i.e.\ we minimize the negative log-likelihood. For one observation,
+with $\mu=e^{f(x)}$,
+\[
+p(y\mid x)=\frac{e^{-\mu}\mu^{y}}{y!}
+\quad\Longrightarrow\quad
+L\bigl(f(x),y\bigr)=-\log p(y\mid x)=e^{f(x)}-y\,f(x)+\log(y!) .
+\]
+The term $\log(y!)$ does not depend on $f$, so it can be dropped. The empirical risk minimized by
+boosting is
+\[
+\widehat R(f)=\frac1n\sum_{i=1}^n\Bigl[e^{f(x_i)}-y_i\,f(x_i)\Bigr].
+\]
+(This is the Poisson deviance up to constants and a factor of 2.)
+
+%==========================================================================
+\section*{(c) Derivative}
+
+\[
+\boxed{\;\frac{\partial L}{\partial f(x)}=e^{f(x)}-y=\mu(x)-y\;}
+\qquad\text{and}\qquad
+\frac{\partial^2L}{\partial f(x)^2}=e^{f(x)}>0 .
+\]
+The gradient is the predicted mean minus the observed count. Its negative,
+$y-\mu(x)$, is a ``residual'' on the count scale. The positive second derivative confirms that the
+loss is strictly convex in $f(x)$.
+
+%==========================================================================
+\section*{(d) Choosing each $h_j$ (first-order / gradient boosting)}
+
+Let $f_{m-1}$ be the model after $m-1$ rounds, and write $\hat\mu_i=e^{f_{m-1}(x_i)}$.
+
+\paragraph{Initialization.} Use the best constant:
+$f_0\equiv\argmin_c\sum_i(e^c-y_ic)=\log\bar y$ (assuming $\bar y>0$).
+
+\paragraph{Round $m=1,2,\dots,M$.}
+\begin{enumerate}
+\item \textbf{Gradient at the data.} Compute
+$g_i=\partial L/\partial f(x_i)\big|_{f=f_{m-1}}=\hat\mu_i-y_i$, and the pseudo-residuals
+$r_i=-g_i=y_i-\hat\mu_i$.
+
+\item \textbf{Fit the tree to the negative gradient.} Choose $h_m$ as the regression tree
+(of a fixed size, e.g.\ depth $d$ or $J$ leaves) that best fits the pseudo-residuals in least
+squares,
+\[
+h_m=\argmin_{h\in\mathcal T}\;\sum_{i=1}^n\bigl(r_i-h(x_i)\bigr)^2 ,
+\]
+grown greedily with the usual CART squared-error splitting rule.
+
+\emph{Why this is the first-order choice.} A first-order Taylor expansion of the empirical risk
+in the direction $h$ gives
+\[
+\widehat R(f_{m-1}+\eta h)\approx\widehat R(f_{m-1})+\frac{\eta}{n}\sum_{i=1}^n g_i\,h(x_i).
+\]
+So the steepest-descent direction, evaluated at the data points, is the vector
+$-g=(r_1,\dots,r_n)$. A tree cannot represent an arbitrary vector in $\R^n$, so we take the tree
+whose prediction vector $(h(x_1),\dots,h(x_n))$ is closest to $-g$ in Euclidean distance.
+Since $\|r-h\|^2=\|r\|^2-2\langle r,h\rangle+\|h\|^2$, this trades off alignment with the
+negative gradient ($\langle r,h\rangle$ large) against the size of $h$. Only the gradient is
+used. A second-order (Newton) method, such as XGBoost, would also use the curvature $e^{f}$ and fit
+$-g_i/\hat\mu_i$ with weights $\hat\mu_i$.
+
+\item \textbf{Step size by line search.} The tree gives a direction. The weight $\lambda_m$
+is chosen by minimizing the actual loss along it:
+\[
+\lambda_m=\nu\cdot\argmin_{\lambda}\sum_{i=1}^n\Bigl[\hat\mu_i\,e^{\lambda h_m(x_i)}-y_i\bigl(f_{m-1}(x_i)+\lambda h_m(x_i)\bigr)\Bigr],
+\]
+a one-dimensional convex problem, solved e.g.\ by a few Newton steps. Here $\nu\in(0,1]$ is a
+shrinkage (learning rate). In the common variant used by Friedman's tree boosting, the line search
+is done separately in each leaf $R_{\ell}$ of $h_m$. For the Poisson loss this has a closed form:
+\[
+\gamma_{\ell}=\argmin_{\gamma}\sum_{i\in R_\ell}\Bigl[\hat\mu_ie^{\gamma}-y_i\gamma\Bigr]
+=\log\frac{\sum_{i\in R_\ell}y_i}{\sum_{i\in R_\ell}\hat\mu_i},
+\]
+i.e.\ each leaf rescales the predicted mean so that, inside the leaf, the total predicted count
+matches the total observed count. (A leaf with $\sum y_i=0$ gives $\gamma_\ell=-\infty$, so in
+practice $\gamma_\ell$ is regularized or capped.)
+
+\item \textbf{Update.} $f_m=f_{m-1}+\lambda_mh_m$ (or $f_m(x)=f_{m-1}(x)+\nu\gamma_{\ell(x)}$ in the
+per-leaf version).
+\end{enumerate}
+
+\paragraph{Hyper-parameters.} The number of rounds $M$, the shrinkage $\nu$ and the tree size are
+not learned by this procedure. They are chosen on held-out data, e.g.\ by early stopping on the
+validation Poisson deviance (see Problem 2).
+
+\end{document}

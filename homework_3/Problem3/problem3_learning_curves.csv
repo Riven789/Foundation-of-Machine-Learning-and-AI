@@ -1,0 +1,41 @@
+dataset,model,n_train,test_acc
+dset0,logistic regression,50,0.6115000000000002
+dset0,logistic regression,100,0.6135000000000002
+dset0,logistic regression,200,0.6255
+dset0,logistic regression,300,0.6345
+dset0,logistic regression,400,0.6355000000000002
+dset0,RBF-SVM,50,0.6744999999999999
+dset0,RBF-SVM,100,0.7234999999999999
+dset0,RBF-SVM,200,0.774
+dset0,RBF-SVM,300,0.8075000000000001
+dset0,RBF-SVM,400,0.8324999999999999
+dset0,random forest,50,0.6765000000000001
+dset0,random forest,100,0.722
+dset0,random forest,200,0.7755000000000002
+dset0,random forest,300,0.8095000000000001
+dset0,random forest,400,0.8299999999999998
+dset0,"GB, 100 trees",50,0.6609999999999998
+dset0,"GB, 100 trees",100,0.7304999999999999
+dset0,"GB, 100 trees",200,0.799
+dset0,"GB, 100 trees",300,0.808
+dset0,"GB, 100 trees",400,0.8314999999999998
+dset1,logistic regression,50,0.813
+dset1,logistic regression,100,0.8320000000000001
+dset1,logistic regression,200,0.8280000000000001
+dset1,logistic regression,300,0.825
+dset1,logistic regression,400,0.826
+dset1,RBF-SVM,50,0.7535000000000001
+dset1,RBF-SVM,100,0.7789999999999999
+dset1,RBF-SVM,200,0.791
+dset1,RBF-SVM,300,0.7905
+dset1,RBF-SVM,400,0.7904999999999999
+dset1,random forest,50,0.7735000000000001
+dset1,random forest,100,0.7975
+dset1,random forest,200,0.8110000000000003
+dset1,random forest,300,0.8285000000000002
+dset1,random forest,400,0.8255000000000002
+dset1,"GB, 100 trees",50,0.758
+dset1,"GB, 100 trees",100,0.7825
+dset1,"GB, 100 trees",200,0.7949999999999999
+dset1,"GB, 100 trees",300,0.8185
+dset1,"GB, 100 trees",400,0.8155000000000001

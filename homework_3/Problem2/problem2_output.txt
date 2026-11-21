@@ -1,0 +1,68 @@
+data: (4898, 12), quality range 3-9
+split: train 3428, validation 490, test 980
+duplicate rows in file: 937; val rows with an exact copy in train: 28.6%, test rows: 24.5%
+baseline (predict train mean 5.900): val MSE 0.7838, test MSE 0.8875
+RF grid: 600 settings, KNN grid: 600 settings
+  RandomForest: 100/600 settings (9s)
+  RandomForest: 200/600 settings (18s)
+  RandomForest: 300/600 settings (35s)
+  RandomForest: 400/600 settings (54s)
+  RandomForest: 500/600 settings (86s)
+  RandomForest: 600/600 settings (120s)
+  KNN: 100/600 settings (12s)
+  KNN: 200/600 settings (29s)
+  KNN: 300/600 settings (49s)
+  KNN: 400/600 settings (59s)
+  KNN: 500/600 settings (74s)
+  KNN: 600/600 settings (90s)
+label variance: train 0.755, validation 0.780, test 0.881
+RandomForest selected: val MSE 0.3632 (s.e. 0.0401), test MSE 0.4605 (s.e. 0.0295)
+KNN selected: val MSE 0.3808 (s.e. 0.0400), test MSE 0.4962 (s.e. 0.0329)
+                                                                                                               0                                                                    1
+model                                                                                               RandomForest                                                                  KNN
+n_settings                                                                                                   600                                                                  600
+best_params              n_estimators=150; max_depth=20.0; min_samples_leaf=1; max_features=0.1; bootstrap=False  scaler=standard; n_neighbors=12; weights=distance; metric=manhattan
+train_mse                                                                                               0.003121                                                                  0.0
+val_mse_selected                                                                                         0.36316                                                             0.380792
+test_mse_selected                                                                                       0.460505                                                             0.496232
+test_minus_val                                                                                          0.097345                                                              0.11544
+test_rank_of_selected                                                                                          8                                                                   14
+oracle_test_mse                                                                                         0.454929                                                             0.483383
+pearson_val_test                                                                                         0.96895                                                             0.947679
+spearman_val_test                                                                                       0.993183                                                             0.943924
+mean_test_minus_val_all                                                                                 0.101732                                                             0.111609
+bound (a) with B=36.0, k=600, l=490, delta=0.05: eps = 3.652
+fast KNN grid vs sklearn grid on the main split: max |difference in MSE| = 0.0e+00 (manhattan/euclidean), 0.0103 (chebyshev)
+  repeat 1/20: val 0.3546  test 0.4026
+  repeat 2/20: val 0.3446  test 0.4183
+  repeat 3/20: val 0.3253  test 0.4075
+  repeat 4/20: val 0.3327  test 0.4079
+  repeat 5/20: val 0.3948  test 0.3927
+  repeat 6/20: val 0.3846  test 0.3973
+  repeat 7/20: val 0.3962  test 0.3844
+  repeat 8/20: val 0.4251  test 0.3772
+  repeat 9/20: val 0.3592  test 0.3934
+  repeat 10/20: val 0.3685  test 0.4268
+  repeat 11/20: val 0.4148  test 0.4518
+  repeat 12/20: val 0.3358  test 0.3805
+  repeat 13/20: val 0.4134  test 0.3777
+  repeat 14/20: val 0.4055  test 0.4319
+  repeat 15/20: val 0.3930  test 0.4302
+  repeat 16/20: val 0.3422  test 0.4205
+  repeat 17/20: val 0.4054  test 0.3665
+  repeat 18/20: val 0.4038  test 0.4037
+  repeat 19/20: val 0.3532  test 0.4113
+  repeat 20/20: val 0.4117  test 0.4211
+KNN over 20 splits: mean val(selected) 0.3782, mean test(selected) 0.4052, mean gap 0.0270 (se 0.0090), gap>0 in 14/20
+         k  mean_min_test_error        sd  union_bound_rate
+0        1              0.49745  0.054166          0.500000
+1        3              0.45645  0.037628          0.425885
+2       10              0.42245  0.030158          0.392702
+3       30              0.39915  0.022176          0.369593
+4      100              0.37315  0.021785          0.348257
+5      300              0.35520  0.018302          0.331125
+6     1000              0.33870  0.018850          0.314154
+7     3000              0.32490  0.016763          0.299920
+8    10000              0.30705  0.014553          0.285403
+9    30000              0.29785  0.014453          0.272965
+10  100000              0.28500  0.012570          0.260074
